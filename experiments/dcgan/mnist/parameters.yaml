@@ -1,0 +1,11 @@
+training:
+  num_epochs: 200
+  num_iterations: 150
+  num_dis_iter: 1
+  num_gen_iter: 1
+  k_dis: 1
+  k_gen: 1
+
+experiment:
+  path: 'experiments/'
+  tb_log: True
