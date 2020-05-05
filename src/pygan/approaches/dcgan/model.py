@@ -1,4 +1,4 @@
-from ...model_utils.layers import GConvTranspose2d, GConv2d, Flatten, Reshape
+from ...layers import ConvTranspose2d, Conv2d, Flatten, Reshape
 from ...interfaces import Gan, GanGenerator
 import torch.nn as nn
 import torch
@@ -28,26 +28,26 @@ class DCGanGenerator(GanGenerator, nn.Module):
             Reshape((channels[0], org_size[0], org_size[1])),
 
             # upsample the feature map and apply batch norm and the non-linearity
-            GConvTranspose2d(channels[0], channels[1], kernel_sizes[0], stride=strides[0], padding=paddings[0],
-                             spec_norm=spec_norm, coord_conv=coord_conv),
+            ConvTranspose2d(channels[0], channels[1], kernel_sizes[0], stride=strides[0], padding=paddings[0],
+                            spec_norm=spec_norm, coord_conv=coord_conv),
             nn.BatchNorm2d(channels[1]),
             nn.LeakyReLU(negative_slope=0.2),
 
             # upsample the feature map and apply batch norm and the non-linearity
-            GConvTranspose2d(channels[1], channels[2], kernel_sizes[1], stride=strides[1], padding=paddings[1],
-                             spec_norm=spec_norm, coord_conv=coord_conv),
+            ConvTranspose2d(channels[1], channels[2], kernel_sizes[1], stride=strides[1], padding=paddings[1],
+                            spec_norm=spec_norm, coord_conv=coord_conv),
             nn.BatchNorm2d(channels[2]),
             nn.LeakyReLU(negative_slope=0.2),
 
             # upsample the feature map and apply batch norm and the non-linearity
-            GConvTranspose2d(channels[2], channels[3], kernel_sizes[2], stride=strides[2], padding=paddings[2],
-                             spec_norm=spec_norm, coord_conv=coord_conv),
+            ConvTranspose2d(channels[2], channels[3], kernel_sizes[2], stride=strides[2], padding=paddings[2],
+                            spec_norm=spec_norm, coord_conv=coord_conv),
             nn.BatchNorm2d(channels[3]),
             nn.LeakyReLU(negative_slope=0.2),
 
             # upsample the feature map and compute the final output image
-            GConvTranspose2d(channels[3], channels[4], kernel_sizes[3], stride=strides[3], padding=paddings[3],
-                             spec_norm=spec_norm, coord_conv=coord_conv),
+            ConvTranspose2d(channels[3], channels[4], kernel_sizes[3], stride=strides[3], padding=paddings[3],
+                            spec_norm=spec_norm, coord_conv=coord_conv),
             nn.Tanh()
         )
 
@@ -128,26 +128,26 @@ class DCGanDiscriminator(nn.Module):
         self.model = nn.Sequential(
 
             # downsample the input image and apply batch norm and a non-linearity
-            GConv2d(channels[4], channels[3], kernel_sizes[3], stride=strides[3],
-                    padding=paddings[3], spec_norm=spec_norm, coord_conv=coord_conv),
+            Conv2d(channels[4], channels[3], kernel_sizes[3], stride=strides[3],
+                   padding=paddings[3], spec_norm=spec_norm, coord_conv=coord_conv),
             nn.BatchNorm2d(channels[3]),
             nn.LeakyReLU(negative_slope=0.2),
 
             # downsample the feature map and apply batch norm and a non-linearity
-            GConv2d(channels[3], channels[2], kernel_sizes[2], stride=strides[2],
-                    padding=paddings[2], spec_norm=spec_norm, coord_conv=coord_conv),
+            Conv2d(channels[3], channels[2], kernel_sizes[2], stride=strides[2],
+                   padding=paddings[2], spec_norm=spec_norm, coord_conv=coord_conv),
             nn.BatchNorm2d(channels[2]),
             nn.LeakyReLU(negative_slope=0.2),
 
             # downsample the feature map and apply batch norm and a non-linearity
-            GConv2d(channels[2], channels[1], kernel_sizes[1], stride=strides[1], padding=paddings[1],
-                    spec_norm=spec_norm, coord_conv=coord_conv),
+            Conv2d(channels[2], channels[1], kernel_sizes[1], stride=strides[1], padding=paddings[1],
+                   spec_norm=spec_norm, coord_conv=coord_conv),
             nn.BatchNorm2d(channels[1]),
             nn.LeakyReLU(negative_slope=0.2),
 
             # downsample the feature map and apply batch norm and a non-linearity
-            GConv2d(channels[1], channels[0], kernel_sizes[0], stride=strides[0], padding=paddings[0],
-                    spec_norm=spec_norm, coord_conv=coord_conv),
+            Conv2d(channels[1], channels[0], kernel_sizes[0], stride=strides[0], padding=paddings[0],
+                   spec_norm=spec_norm, coord_conv=coord_conv),
             nn.BatchNorm2d(channels[0]),
             nn.LeakyReLU(negative_slope=0.2),
 
@@ -185,12 +185,58 @@ class DCGan(Gan):
         super(DCGan, self).__init__()
 
         # create the generator of the DC-GAN
-        self.g = DCGanGenerator(latent_dim=latent_dim, channels=channels, org_size=org_size, kernel_sizes=kernel_sizes,
-                                strides=strides,  paddings=paddings, spec_norm=spec_norm_gen, coord_conv=coord_conv)
+        self._g = DCGanGenerator(latent_dim=latent_dim, channels=channels, org_size=org_size, kernel_sizes=kernel_sizes,
+                                 strides=strides,  paddings=paddings, spec_norm=spec_norm_gen, coord_conv=coord_conv)
 
         # create the discriminator of the DC-GAN
-        self.d = DCGanDiscriminator(spec_norm=spec_norm_dis, coord_conv=coord_conv, channels=channels,
-                                    org_size=org_size, paddings=paddings, strides=strides, kernel_sizes=kernel_sizes)
+        self._d = DCGanDiscriminator(spec_norm=spec_norm_dis, coord_conv=coord_conv, channels=channels,
+                                     org_size=org_size, paddings=paddings, strides=strides, kernel_sizes=kernel_sizes)
+
+
+    @property
+    def generator(self) -> GanGenerator:
+        """
+        GAN generator
+        Returns
+        -------
+        Generator module
+        """
+        return self._g
+
+    @generator.setter
+    def generator(self, gan_generator: GanGenerator) -> None:
+        """
+        Gan Generator Setter.
+        Parameters
+        ----------
+        gan_generator: Gan generator
+        """
+
+        assert isinstance(gan_generator, GanGenerator), "Generator needs to be an instance of GanGenerator."
+        self._g = gan_generator
+
+
+    @property
+    def discriminator(self) -> nn.Module:
+        """
+        GAN generator
+        Returns
+        -------
+        Generator module
+        """
+        return self._d
+
+    @discriminator.setter
+    def discriminator(self, discriminator: nn.Module) -> None:
+        """
+        Gan Generator Setter.
+        Parameters
+        ----------
+        gan_generator: Gan generator
+        """
+
+        assert isinstance(discriminator, nn.Module), "Generator needs to be an instance of torch.nn.Module."
+        self._d = discriminator
 
     def generate_data(self, noise: torch.Tensor, *args, **kwargs)->dict:
         """
