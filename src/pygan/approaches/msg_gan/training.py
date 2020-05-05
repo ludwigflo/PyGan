@@ -32,7 +32,7 @@ class Trainer(GanTrainer):
 
         # some preparations
         sample = next(self.train_data_generator)
-        data_real = sample['data_real'].to(self.device)
+        data_real = [x.to(self.device) for x in sample['data_real']]
         gen_input = sample['gen_input'].to(self.device)
         self.gan_model.discriminator.zero_grad()
         self.gan_model.generator.zero_grad()
@@ -41,8 +41,8 @@ class Trainer(GanTrainer):
         data_fake = self.gan_model.generator(gen_input)
 
         # compute the targets (smooth labels)
-        targets_real = torch.from_numpy(np.random.uniform(0.7, 1, data_real.size()[0])).float().view(-1, 1)
-        targets_fake = torch.from_numpy(np.random.uniform(0, 0.3, data_fake.size()[0])).float().view(-1, 1)
+        targets_real = torch.from_numpy(np.random.uniform(0.7, 1, data_real[0].size()[0])).float().view(-1, 1)
+        targets_fake = torch.from_numpy(np.random.uniform(0, 0.3, data_fake[0].size()[0])).float().view(-1, 1)
         targets_real = targets_real.to(self.device).view(-1)
         targets_fake = targets_fake.to(self.device).view(-1)
 
@@ -86,7 +86,7 @@ class Trainer(GanTrainer):
         data_fake = self.gan_model.generator(gen_input)
 
         # compute the targets (smooth labels)
-        targets_fake = torch.ones(data_fake.size()[0]).float().view(-1, 1)
+        targets_fake = 0.7 + 0.3 * torch.rand(data_fake[0].size()[0]).view(-1, 1)
         targets_fake = targets_fake.to(self.device).view(-1)
 
         # compute the predictions
@@ -118,7 +118,7 @@ class Trainer(GanTrainer):
                 sys.stdout.flush()
 
                 # get the input for the generator and the real sample
-                data_real = sample['data_real'].to(self.device)
+                data_real = [x.to(self.device) for x in sample['data_real']]
                 gen_input = sample['gen_input'].to(self.device)
 
                 # compute fake data
@@ -127,8 +127,8 @@ class Trainer(GanTrainer):
                 # compute the targets
                 # targets_real = torch.from_numpy(np.random.uniform(0.7, 1, data_real.size()[0])).float().view(-1, 1)
                 # targets_fake = torch.from_numpy(np.random.uniform(0, 0.3, data_fake.size()[0])).float().view(-1, 1)
-                targets_real = 0.7 * torch.ones(data_real.size()[0]).view(-1, 1)
-                targets_fake = 0.3 * torch.ones(data_fake.size()[0]).view(-1, 1)
+                targets_real = 0.7 + 0.3 * torch.rand(data_real[0].size()[0]).view(-1, 1)
+                targets_fake = 0.3 * torch.rand(data_fake[0].size()[0]).view(-1, 1)
                 targets_real = targets_real.to(self.device)
                 targets_fake = targets_fake.to(self.device)
 
@@ -147,7 +147,7 @@ class Trainer(GanTrainer):
                 val_results['real_loss'].append(loss_real.data.item())
 
                 if count < 100:
-                    val_results['images'].append(data_fake.detach().cpu().numpy())
+                    val_results['images'].append(data_fake[-1].detach().cpu().numpy())
 
                 if count==1000:
                     break
@@ -182,7 +182,6 @@ class Trainer(GanTrainer):
         images = [img[0:1, :, :, :] if img.shape[3]>1 else np.repeat(img[0:1, ...], 3, axis=3) for img in images]
         images = [normalize_img(img) for img in images]
         images = np.concatenate(images)
-        print(images.shape)
 
         tb_img_dict = {'Samples': images}
         tb_logger_list[0].log_images('Generated', tb_img_dict, epoch)
