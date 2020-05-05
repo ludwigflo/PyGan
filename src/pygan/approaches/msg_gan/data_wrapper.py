@@ -14,6 +14,7 @@ def wrapper(data, size_tuple=(8, 16, 32)):
 
     """
 
+    data_list = []
     for i in range(len(size_tuple)):
         data_list.append(F.interpolate(data, size_tuple[i]))
     data_list.append(data)
