@@ -1,3 +1,4 @@
+from pygan.approaches.msg_gan.data_wrapper import wrapper
 from typing import Tuple, Union
 import torch.nn.functional as F
 import torch
@@ -76,12 +77,7 @@ def data_loader(data_path: str, data_name: str, batch_size: int, rand: bool = Fa
         if rand:
             indices = torch.randperm(num_data_samples)[:batch_size]
             samples = data[indices]
-
-            data_list = []
-            # interpolate data and resize them to multiple resolutions
-            for i in range(len(size_tuple)):
-                data_list.append(F.interpolate(samples, size_tuple[i]))
-            data_list.append(samples)
+            data_list = wrapper(samples)
 
             output = {'data_real': data_list, 'gen_input': noise}
             yield output
