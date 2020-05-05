@@ -2,11 +2,13 @@ from pygan.approaches import msg_gan
 from data_loader import data_loader
 from torch.nn import BCELoss
 import torch
+import os
+
 
 # hyper parameters
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 parameter_file = 'parameters.yaml'
-batch_size = 256
+batch_size = 64
 noise_size = 30
 
 # create data loaders for train and test data
@@ -29,11 +31,12 @@ spec_norm_dis=True
 spec_norm_gen=True
 coord_conv=False
 org_size=(2, 2)
+
 model = msg_gan.GanModule(channels=channels, kernel_sizes=kernel_sizes, paddings=paddings, strides=strides,
                           spec_norm_dis=spec_norm_dis, spec_norm_gen=spec_norm_gen, coord_conv=coord_conv,
                           org_size=org_size, latent_dim=latent_dim)
 print('Done!\n')
-#
-# # initialize the trainer
-# trainer = msg_gan.Trainer(model, train_loader, BCELoss, test_loader, parameter_file, device)
-# trainer.train()
+
+# initialize the trainer
+trainer = msg_gan.Trainer(model, train_loader, BCELoss, test_loader, parameter_file, device)
+trainer.train()

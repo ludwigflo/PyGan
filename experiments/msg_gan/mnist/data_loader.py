@@ -1,4 +1,5 @@
 from typing import Tuple, Union
+import torch.nn.functional as F
 import torch
 
 
@@ -24,7 +25,7 @@ def load_dataset(data_path: str, data_name: str) -> Tuple[torch.Tensor, torch.Te
 
 
 def data_loader(data_path: str, data_name: str, batch_size: int, rand: bool = False,
-                noise_size: Union[int, tuple] = 30, fix_noise: bool = False):
+                noise_size: Union[int, tuple] = 30, fix_noise: bool = False, size_tuple: tuple = (4, 8, 14)):
     """
 
     Parameters
@@ -35,6 +36,7 @@ def data_loader(data_path: str, data_name: str, batch_size: int, rand: bool = Fa
     rand
     noise_size
     fix_noise
+    size_tuple
 
     Returns
     -------
@@ -75,13 +77,13 @@ def data_loader(data_path: str, data_name: str, batch_size: int, rand: bool = Fa
             indices = torch.randperm(num_data_samples)[:batch_size]
             samples = data[indices]
 
+            data_list = []
             # interpolate data and resize them to multiple resolutions
             for i in range(len(size_tuple)):
-                data_list.append(F.interpolate(data, size_tuple[i]))
-            data_list.append(data)
+                data_list.append(F.interpolate(samples, size_tuple[i]))
+            data_list.append(samples)
 
-
-            output = {'data_real': samples, 'gen_input': noise}
+            output = {'data_real': data_list, 'gen_input': noise}
             yield output
         else:
             if index+batch_size < num_data_samples:
@@ -93,5 +95,12 @@ def data_loader(data_path: str, data_name: str, batch_size: int, rand: bool = Fa
                 samples = data[index:num_data_samples]
                 done = True
                 index = 0
-            output = {'data_real': samples, 'gen_input': noise}
+
+            data_list = []
+            # interpolate data and resize them to multiple resolutions
+            for i in range(len(size_tuple)):
+                data_list.append(F.interpolate(samples, size_tuple[i]))
+            data_list.append(samples)
+
+            output = {'data_real': data_list, 'gen_input': noise}
             yield output, done, num_data_samples

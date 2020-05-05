@@ -3,8 +3,8 @@ training:
   num_iterations: 150
   k_dis: 1
   k_gen: 1
-  lr_gen: 0.0002
-  lr_dis: 0.0002
+  lr_gen: 0.00025
+  lr_dis: 0.00025
 
 experiment:
   path: 'experiments/'
