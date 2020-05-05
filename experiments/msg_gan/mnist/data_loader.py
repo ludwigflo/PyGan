@@ -77,7 +77,9 @@ def data_loader(data_path: str, data_name: str, batch_size: int, rand: bool = Fa
         if rand:
             indices = torch.randperm(num_data_samples)[:batch_size]
             samples = data[indices]
-            data_list = wrapper(samples)
+
+            # create a list of images, as required for the msg GAN
+            data_list = wrapper(samples, size_tuple)
 
             output = {'data_real': data_list, 'gen_input': noise}
             yield output
@@ -92,11 +94,8 @@ def data_loader(data_path: str, data_name: str, batch_size: int, rand: bool = Fa
                 done = True
                 index = 0
 
-            data_list = []
-            # interpolate data and resize them to multiple resolutions
-            for i in range(len(size_tuple)):
-                data_list.append(F.interpolate(samples, size_tuple[i]))
-            data_list.append(samples)
+            # create a list of images, as required for the msg GAN
+            data_list = wrapper(samples, size_tuple)
 
             output = {'data_real': data_list, 'gen_input': noise}
             yield output, done, num_data_samples
