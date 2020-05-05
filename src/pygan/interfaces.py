@@ -1,4 +1,4 @@
-from typing import List, Tuple, DefaultDict
+from typing import List, Tuple, DefaultDict, Union
 from .utils import read_parameter_file
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -7,6 +7,7 @@ from typing import Generator
 from . import ml_utils
 import torch.nn as nn
 import torch
+import sys
 
 
 class GanGenerator(ABC):
@@ -60,11 +61,27 @@ class Gan(ABC):
         """
         raise NotImplementedError
 
+    @generator.setter
+    @abstractmethod
+    def generator(self, generator) -> None:
+        """
+        Gan Generator setter.
+        """
+        raise NotImplementedError
+
     @property
     @abstractmethod
-    def discriminator(self):
+    def discriminator(self) -> nn.Module:
         """
         Gan Discriminator.
+        """
+        raise NotImplementedError
+
+    @discriminator.setter
+    @abstractmethod
+    def discriminator(self, discriminator: nn.Module) -> None:
+        """
+        Gan Generator setter.
         """
         raise NotImplementedError
 
@@ -102,7 +119,7 @@ class Gan(ABC):
 
 
 class GanTrainer(ABC):
-    def __init__(self, gan_model: Gan, data_generator: Generator[dict], parameter_file: str) -> None:
+    def __init__(self, gan_model: Gan, data_generator: Generator[dict, None, None], parameter_file: str) -> None:
         """
         Constructor of the GanTrainer class.
 
@@ -167,15 +184,15 @@ class GanTrainer(ABC):
         initialization = ml_utils.init_experiment_dir(dir_root, tb_log, tb_log_names)
         return initialization
 
-    @abstract_method
-    def val_epoch(self) -> DefaultDict[List]:
+    @abstractmethod
+    def val_epoch(self) -> DefaultDict[str, List]:
         """
         Validation epoch of the GAN.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def log_results(self, experiment_dir: path, tb_logger_list: Union[None, list],
+    def log_results(self, experiment_dir: str, tb_logger_list: Union[None, list], epoch,
                     gen_train_results: dict, dis_train_results: dict, val_results: dict) -> None:
         """
         Logs and displays the training results.
@@ -200,10 +217,11 @@ class GanTrainer(ABC):
         lr_dis = params['training']['lr_dis']
 
         optimizer_gen = Adam(self.gan_model.generator.parameters(), lr = lr_gen, betas = (0.9, 0.999))
-        optimizer_dis = Adam(self.gan_model.generator.parameters(), lr = lr_dis, betas = (0.9, 0.999))
+        optimizer_dis = Adam(self.gan_model.discriminator.parameters(), lr = lr_dis, betas = (0.9, 0.999))
         self.optimizer_list = [optimizer_gen, optimizer_dis]
 
-    def train_epoch(self, num_iterations: int, k_dis: int, k_gen: int) -> Tuple[DefaultDict[List], DefaultDict[List]]:
+    def train_epoch(self, num_iterations: int, k_dis: int,
+                    k_gen: int) -> Tuple[DefaultDict[str, List], DefaultDict[str, List]]:
         """
         One train epoch of the GAN, which consists of multiple training steps of the gan's generator and discriminator.
 
@@ -224,9 +242,10 @@ class GanTrainer(ABC):
 
         for iteration in range(num_iterations):
 
-            print_str = 'Iteration: {0}, Progress: {1}'.format(iteration, float(iteration) / num_iterations * 100)
-
-
+            print_str = '\r\tTraining...    Iteration: {0}, Progress: {1:3.2f}%'.format(iteration,
+                                                                                   float(iteration)/num_iterations*100)
+            sys.stdout.write(print_str)
+            sys.stdout.flush()
             # train the discriminator
             for k in range(k_dis):
                 results = self.discriminator_train_iteration()
@@ -239,7 +258,13 @@ class GanTrainer(ABC):
                 for key, value in results.items():
                     gen_results[key].append(value)
 
-        print_str = 'Iteration: {0}, Progress: {1}%'.format(num_iterations-1, 100)
+            sys.stdout.write(print_str)
+            sys.stdout.flush()
+
+        print_str = '\r\tTraining...    Iteration: {0}, Progress: {1:3.2f}%'.format(num_iterations-1, 100)
+        sys.stdout.write(print_str)
+        sys.stdout.flush()
+        print()
         return dis_results, gen_results
 
     def train(self) -> None:
@@ -256,8 +281,6 @@ class GanTrainer(ABC):
 
         # extract the training settings
         num_iterations = params['training']['num_iterations']
-        num_dis_iter = params['training']['num_dis_iter']
-        num_gen_iter = params['training']['num_gen_iter']
         num_epochs = params['training']['num_epochs']
         k_dis = params['training']['k_dis']
         k_gen = params['training']['k_gen']
@@ -273,9 +296,12 @@ class GanTrainer(ABC):
         # create the optimizer
         self.prepare_optimizer(params)
 
+        print('\n\nStart Training')
+        print('--------------')
+
         # perform training
         for epoch in range(num_epochs):
-            print('Epoch: {0}, Training Progress: {1}%'.format(epoch, float(epoch)/num_epochs * 100))
+            print('\nEpoch: {0}, Training Progress: {1:3.2f}%'.format(epoch, float(epoch)/num_epochs * 100))
             dis_train_results, gen_train_results = self.train_epoch(num_iterations, k_dis, k_gen)
             val_results = self.val_epoch()
-            self.log_results(experiment_path, tb_logger_list, gen_train_results, dis_train_results, val_results)
+            self.log_results(experiment_path, tb_logger_list, epoch, gen_train_results, dis_train_results, val_results)
