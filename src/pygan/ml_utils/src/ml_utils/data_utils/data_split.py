@@ -1,7 +1,7 @@
 import random
 
 
-def data_split(num_data: int, train_data: float, val_data: float, shuffle: bool = True) -> tuple:
+def simple_data_split(num_data: int, train_data: float, val_data: float, shuffle: bool = True) -> tuple:
     """
     Computes the indices for a training, validation and test split, based on the total number of data. The test data are
     the remaining data, which have not been assigned to training or validation data.
