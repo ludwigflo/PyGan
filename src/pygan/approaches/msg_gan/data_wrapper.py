@@ -1,7 +1,7 @@
 import torch.nn.functional as F
 
 
-def multi_scale_generator(data, size_tuple=(8, 16, 32)):
+def wrapper(data, size_tuple=(8, 16, 32)):
     """
     Data wrapper for Multi-Scale-Gradient-GANs, which wraps image data into a list of images of different scales.
 
