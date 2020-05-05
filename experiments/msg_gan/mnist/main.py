@@ -1,5 +1,5 @@
+from pygan.approaches import msg_gan
 from data_loader import data_loader
-from pygan.approaches import dcgan
 from torch.nn import BCELoss
 import torch
 
@@ -29,11 +29,11 @@ spec_norm_dis=True
 spec_norm_gen=True
 coord_conv=False
 org_size=(2, 2)
-model = dcgan.GanModule(channels=channels, kernel_sizes=kernel_sizes, paddings=paddings, strides=strides,
-                        spec_norm_dis=spec_norm_dis, spec_norm_gen=spec_norm_gen, coord_conv=coord_conv,
-                        org_size=org_size, latent_dim=latent_dim)
+model = msg_gan.GanModule(channels=channels, kernel_sizes=kernel_sizes, paddings=paddings, strides=strides,
+                          spec_norm_dis=spec_norm_dis, spec_norm_gen=spec_norm_gen, coord_conv=coord_conv,
+                          org_size=org_size, latent_dim=latent_dim)
 print('Done!\n')
-
-# initialize the trainer
-trainer = dcgan.Trainer(model, train_loader, BCELoss, test_loader, parameter_file, device)
-trainer.train()
+#
+# # initialize the trainer
+# trainer = msg_gan.Trainer(model, train_loader, BCELoss, test_loader, parameter_file, device)
+# trainer.train()

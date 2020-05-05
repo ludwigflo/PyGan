@@ -74,6 +74,13 @@ def data_loader(data_path: str, data_name: str, batch_size: int, rand: bool = Fa
         if rand:
             indices = torch.randperm(num_data_samples)[:batch_size]
             samples = data[indices]
+
+            # interpolate data and resize them to multiple resolutions
+            for i in range(len(size_tuple)):
+                data_list.append(F.interpolate(data, size_tuple[i]))
+            data_list.append(data)
+
+
             output = {'data_real': samples, 'gen_input': noise}
             yield output
         else:
