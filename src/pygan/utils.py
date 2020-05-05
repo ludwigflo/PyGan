@@ -1,11 +1,11 @@
 from torch.autograd import Variable
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+from ruamel.yaml import YAML
 from imageio  import imread
 from typing import Union
 import numpy as np
 import torch
-import yaml
 import os
 
 
@@ -40,8 +40,9 @@ def read_parameter_file(parameter_file_path: str) -> dict:
     params: Dictionary containing the parameters defined in the provided yam file
     """
 
+    yaml = YAML()
     with open(parameter_file_path, 'r') as f:
-        params = yaml.safe_load(f)
+        params = yaml.load(f)
     return params
 
 
@@ -275,7 +276,7 @@ def update_dictionaries(final_dict: dict, new_dict: dict) -> dict:
     return final_dict
 
 
-def to_gpu(*args: Union(torch.Tensor, torch.nn.Module, list)) -> tuple:
+def to_gpu(*args: Union[torch.Tensor, torch.nn.Module, list]) -> tuple:
     """
     Moves torch.Tensors and torch.nn.Modules to the GPU (by calling the .cuda() function). This function can also handle
     lists of tensors or lists of torch.nn.Modules.
