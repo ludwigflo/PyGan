@@ -1,15 +1,17 @@
 from .data_split import k_fold_cross_validation, data_split
+from scipy.misc import imread, imresize
 from abc import ABC, abstractmethod
 from typing import Union, List
 from copy import deepcopy
+import numpy as np
 import random
 import pickle
+import os
 
 
 class DataLoaderInterface(ABC):
 
-    def __init__(self, total_num_data: Union[list, int], params: dict, shuffle_data: bool=True,
-                 balance_classes: Union[None, bool] = True):
+    def __init__(self, total_num_data: Union[list, int], params: dict, shuffle_data: bool=True):
         """
         Constructor of the DataLoaderInterface Class.
 
@@ -19,9 +21,6 @@ class DataLoaderInterface(ABC):
         params: Parameters, stored in form of a dictionary.
         shuffle_data: Variable, which determines whether to shuffle the data before splitting or not.
         """
-
-        # whether to sample different classes balanced or not
-        self.balance_classes = balance_classes
 
         # get the parameters, which define the data split
         split = params['data_loader']['split']
@@ -129,7 +128,7 @@ class DataLoaderInterface(ABC):
         return split
 
     @abstractmethod
-    def load_data(self, index: Union[List[int], int], label: Union[List[int], int] = 0):
+    def load_data(self, index: Union[List[int], int], label: Union[List[int], int] = 0) -> object:
         """
         Abstract method for loading data samples, which are queried by their indices.
 
@@ -292,3 +291,161 @@ class DataLoaderInterface(ABC):
         with open(path, 'rb') as f:
             data_loader_object = pickle.load(f)
         return data_loader_object
+
+
+class ImgLoader(DataLoaderInterface):
+    def __init__(self, params: dict, img_size: tuple=(3, 224, 224), shuffle_data: bool=True, return_labels: bool=False):
+        """
+        Constructor of the ImgLoader class.
+
+        Parameters
+        ----------
+        params: Parameters, which define hof to load the data.
+        img_size: Size of the images, in channels first manner.
+        shuffle_data: Variable, which indicates, whether to shuffle the data or not.
+        """
+
+        self.img_size = list(img_size)
+        self.return_labels = return_labels
+        self.base_img_folder = params['data']['base_path']
+        self.images, self.label_folders, self.total_num_data =  self.get_img_names(self.base_img_folder)
+        super().__init__(self.total_num_data, params, shuffle_data)
+
+    @staticmethod
+    def get_img_names(base_path: str) -> tuple:
+        """
+        Loads the names of the images, given a base directory. If the base directory only contains images, then no
+        different labels are provided to the data. If the base directory contains sub-folders, then the folder names are
+        taken as labels, and the content of the sub-folders is interpreted as image data. The sub-folder names are the
+        interpreted as labels of the images.
+
+        Parameters
+        ----------
+        base_path: Path, in which the images or/and subfolders are stored.
+
+        Returns
+        -------
+        images: List os lists, which are interpreted as labels. The label lists contain image names.
+        label_folders: List of names of the label sub-folders.
+        total_num_data: List of integers containing the number of data per label.
+        """
+
+        # load all files and folders in the base directory
+        files = os.listdir(base_path)
+
+        # keep all sub-folders of the base directory
+        label_folders = [sub_folder for sub_folder in files if os.path.isdir(sub_folder)]
+
+        # if no sub-folder is in the base directory, then the base folder contains all of the data
+        if len(data_folders) == 0:
+            label_folders = [base_path]
+
+        # get the image names and the number of image data per label
+        images = []
+        total_num_data = []
+        for label_folder in label_folders:
+            files = os.listdir(base_path + label_folder)
+            images.append(files)
+            total_num_data.append(len(files))
+        return images, label_folders, total_num_data
+
+    def channels_last2channels_first(self, img: np.ndarray) -> np.ndarray:
+        """
+        Converts an image, which is stored in channels last manner into an image, which ist stored in channels first manner.
+
+        Parameters
+        ----------
+        img: Image, stored in channels last manner.
+
+        Returns
+        -------
+        img_out: Image, stored in channels first manner.
+        """
+
+        img_out = np.zeros(self.img_size)
+        for i in range(img.shape[2]):
+            img_out[i, ...] = img[:, :, i]
+        return img_out
+
+
+    def load_img(self, img_path_list: list) -> np.ndarray:
+        """
+        Loads images based on their directories.
+
+        Parameters
+        ----------
+        img_path_list: List of image directories, which should be loaded.
+
+        Returns
+        -------
+        images: Images in form of numpy.ndarrays, stored in channels first manner.
+        """
+
+        # initialize the image batch
+        num_images = len(img_path_list)
+        shape = [num_images]
+        shape.extend(self.img_size)
+        images = np.zeros(shape)
+
+        # compute the normal shape (target image size in channels last manner)
+        normal_shape = [self.img_size[1], self.img_size[2]]
+        if self.img_size[0] > 1:
+            normal_shape.append(self.img_size[0])
+        normal_shape = tuple(normal_shape)
+
+        # load and store all images in the image_path  list
+        for i, img_path in enumerate(img_path_list):
+
+            # load the current image and resize it to the target shape
+            img = imresize(imread(img_path), normal_shape)
+
+            # store the image in channels first manner
+            images[i] = channels_last2channels_first(img)
+
+        return images
+
+    def load_data(self, img_indices: Union[List[int], int],
+                  label_indices: Union[List[int], int] = 0) -> Union[tuple, np.ndarray]:
+        """
+        Loads image data based on their index and label.
+
+        Parameters
+        ----------
+        img_indices: Position(s) of the image name in self.images list, given the corresponding label.
+        label_indices: Label, under which the image index can be found in the self.images list.
+
+        Returns
+        -------
+
+        """
+
+        # check if the provided index and labels are correct
+        assert type(img_indices) == type(label_indices), 'Provided indices and labels need to have the same data type!'
+        if type(img_indices) == list:
+            assert len(img_indices) == len(label_indices), 'Provided indices and labels need to have the same length!'
+
+        # convert the index and label variable into the correct format, if needed
+        if type(img_indices) == int:
+            img_indices = [img_indices]
+            label_indices = [label_indices]
+
+        # compute the image paths corresponding to the label and image indices
+        img_path_list = []
+        for (img_index, label_index) in zip(img_indices, label_indices):
+            label_folder = self.label_folders[label_index]
+            image_name = self.images[label_index][img_index]
+            img_path_list.append(self.base_img_folder + label_folder + image_name)
+
+        # load the images
+        images = self.load_img(img_path_list)
+
+        # return the images and label names if needed
+        if self.return_labels:
+            label_names = []
+            for label_index in label_indices:
+                label_names.append(self.label_folders[label_index])
+            return images, labels
+
+        # else return only the images
+        else:
+            return images
