@@ -1,8 +1,8 @@
-from .data_split import k_fold_cross_validation, data_split
-from scipy.misc import imread, imresize
+from .data_split import k_fold_cross_validation, simple_data_split
 from abc import ABC, abstractmethod
 from typing import Union, List
 from copy import deepcopy
+from PIL import Image
 import numpy as np
 import random
 import pickle
@@ -34,7 +34,7 @@ class DataLoaderInterface(ABC):
         else:
             train_split = params['data_loader']['simple_split']['train_split']
             val_split = params['data_loader']['simple_split']['val_split']
-            split = return_simple_data_split(total_num_data, train_split, val_split, shuffle_data)
+            self.split = simple_data_split(total_num_data, train_split, val_split, shuffle_data)
             self.cross_val = False
 
     @staticmethod
@@ -63,7 +63,7 @@ class DataLoaderInterface(ABC):
             # an integer and not a list of integers), we only append one second level list in order to provide the
             # correct form. This list finally contains the indices of the data samples.
             split_list = [[x] for x in split_temp]
-            split = tuple(split)
+            split = tuple(split_list)
 
         else:
             split = [k_fold_cross_validation(k, num_data, shuffle=shuffle_data) for num_data in total_num_data]
@@ -104,7 +104,7 @@ class DataLoaderInterface(ABC):
             # an integer and not a list of integers), we only append one second level list in order to provide the
             # correct form. This list finally contains the indices of the data samples.
             split_list = [[x] for x in split_temp]
-            split = tuple(split)
+            split = tuple(split_list)
 
         # if we just split each label into train and test indices, then we need to iterate over the class labels
         else:
@@ -172,14 +172,13 @@ class DataLoaderInterface(ABC):
             samples = self.load_data(indices, labels)
             yield samples
 
-    def val_generator(self, batch_size: int = 1, rand: bool = False, val_fold: int = 1) -> tuple:
+    def val_generator(self, batch_size: int = 1, val_fold: int = 1) -> tuple:
         """
         Generator for the validation set.
 
         Parameters
         ----------
         batch_size: Size of the mini_batch for each validation batch.
-        rand: Whether to randomly sample the the validation samples.
         val_fold: Indicates, which fold is used for validation (for normal train- val test split the fold number is 1).
 
         Returns
@@ -196,7 +195,7 @@ class DataLoaderInterface(ABC):
         labels = []
         for i, label_list in enumerate(val_set):
             indices.extend(deepcopy(label_list))
-            indices.extend([i] * len(label_list))
+            labels.extend([i] * len(label_list))
 
         # do as long as you want
         iteration = 0
@@ -216,14 +215,13 @@ class DataLoaderInterface(ABC):
             iteration = iteration + 1 if (not done) else 0
             yield samples, done
 
-    def test_generator(self, batch_size: int = 1, rand: bool = False) -> tuple:
+    def test_generator(self, batch_size: int = 1) -> tuple:
         """
         Generator for the test set.
 
         Parameters
         ----------
         batch_size: Number of samples per batch.
-        rand: Boolean, which determines whether to sample the test samples randomly or not.
 
         Returns
         -------
@@ -242,7 +240,7 @@ class DataLoaderInterface(ABC):
         labels = []
         for i, label_list in enumerate(test_set):
             indices.extend(deepcopy(label_list))
-            indices.extend([i] * len(label_list))
+            labels.extend([i] * len(label_list))
 
         # do as long as you want
         iteration = 0
@@ -337,7 +335,7 @@ class ImgLoader(DataLoaderInterface):
         label_folders = [sub_folder for sub_folder in files if os.path.isdir(sub_folder)]
 
         # if no sub-folder is in the base directory, then the base folder contains all of the data
-        if len(data_folders) == 0:
+        if len(label_folders) == 0:
             label_folders = [base_path]
 
         # get the image names and the number of image data per label
@@ -397,10 +395,10 @@ class ImgLoader(DataLoaderInterface):
         for i, img_path in enumerate(img_path_list):
 
             # load the current image and resize it to the target shape
-            img = imresize(imread(img_path), normal_shape)
+            img = np.array(Image.open(img_path).resize(normal_shape))
 
             # store the image in channels first manner
-            images[i] = channels_last2channels_first(img)
+            images[i] = self.channels_last2channels_first(img)
 
         return images
 
@@ -441,9 +439,9 @@ class ImgLoader(DataLoaderInterface):
 
         # return the images and label names if needed
         if self.return_labels:
-            label_names = []
+            labels = []
             for label_index in label_indices:
-                label_names.append(self.label_folders[label_index])
+                labels.append(self.label_folders[label_index])
             return images, labels
 
         # else return only the images
