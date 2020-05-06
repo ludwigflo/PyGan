@@ -44,12 +44,6 @@ class Logger(object):
             with self.writer.as_default():
                 tf.summary.scalar(tag, value, step)
 
-            # # create a tensorboard summary
-            #  summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
-
-            # # add the tensorboard summary to the writer
-            # self.writer.add_summary(summary, step)
-
         # write the scalar values
         self.writer.flush()
 
@@ -66,23 +60,8 @@ class Logger(object):
         """
 
         for key, img in images.items():
-
-            # Write the image to a string
-            s = BytesIO()
-            if self.cmap is None:
-                plt.imsave(s, img, format='png')
-            else:
-                plt.imsave(s, img, format='png', cmap=self.cmap)
-
-            # Create an Image object
-            img_sum = tf.Summary.Image(encoded_image_string=s.getvalue(), height=img.shape[0], width=img.shape[1])
-
-            # Create a Summary value
-            im_summaries.append(tf.Summary.Value(tag='%s/%s' % (tag, key), image=img_sum))
-
-        # Create and write Summary
-        summary = tf.Summary(value=im_summaries)
-        self.writer.add_summary(summary, step)
+            with self.writer.as_default():
+                    tf.summary.image(key, img, step)
         self.writer.flush()
 
     def log_histogram(self, values: np.ndarray, tag: str, step: int, bins: int = 1000) -> None:
