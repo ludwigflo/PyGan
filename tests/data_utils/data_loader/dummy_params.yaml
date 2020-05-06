@@ -1,0 +1,14 @@
+data_loader:
+  split: 'simple_split' # 'cross_validation'
+
+  # required if split == simple_split
+  simple_split:
+    train_split: 0.3
+    val_split: 0.2 # 0.2
+
+  # required if split == cross_validation
+  cross_validation:
+    k: 5
+
+data:
+  base_path: 'images/base_path1/' # 'images/base_path2/'

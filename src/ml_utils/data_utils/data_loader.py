@@ -34,7 +34,7 @@ class DataLoaderInterface(ABC):
         else:
             train_split = params['data_loader']['simple_split']['train_split']
             val_split = params['data_loader']['simple_split']['val_split']
-            self.split = simple_data_split(total_num_data, train_split, val_split, shuffle_data)
+            self.split = self.return_simple_data_split(total_num_data, train_split, val_split, shuffle_data)
             self.cross_val = False
 
     @staticmethod
@@ -108,6 +108,7 @@ class DataLoaderInterface(ABC):
 
         # if we just split each label into train and test indices, then we need to iterate over the class labels
         else:
+
             split = [simple_data_split(num_data, train_split, val_split, shuffle_data) for num_data in total_num_data]
 
             if train_split + val_split < 1:
@@ -167,8 +168,9 @@ class DataLoaderInterface(ABC):
             train_set = self.split[0]
 
         while True:
-            labels = [random.randint(0, len(train_set)) for _ in range(batch_size)]
-            indices = [random.choices(train_set[label], k=1) for label in labels]
+
+            labels = [random.randint(0, len(train_set)-1) for _ in range(batch_size)]
+            indices = [random.choices(train_set[label], k=1)[0] for label in labels]
             samples = self.load_data(indices, labels)
             yield samples
 
@@ -206,7 +208,7 @@ class DataLoaderInterface(ABC):
 
             # choose the current indices
             cur_indices = indices[iteration * batch_size: max_size]
-            cur_labels = indices[iteration * batch_size: max_size]
+            cur_labels = labels[iteration * batch_size: max_size]
 
             # load the data and check, if a complete evaluation epoch has been performed
             samples = self.load_data(cur_indices, cur_labels)
@@ -235,6 +237,7 @@ class DataLoaderInterface(ABC):
 
         # get the test set and compute te number of iterations for one test epoch
         test_set = self.split[2]
+
         # get a flatten list of indices and corresponding labels
         indices = []
         labels = []
@@ -251,7 +254,7 @@ class DataLoaderInterface(ABC):
 
             # choose the current indices
             cur_indices = indices[iteration * batch_size: max_size]
-            cur_labels = indices[iteration * batch_size: max_size]
+            cur_labels = labels[iteration * batch_size: max_size]
 
             # load the data and check, if a complete evaluation epoch has been performed
             samples = self.load_data(cur_indices, cur_labels)
@@ -307,6 +310,7 @@ class ImgLoader(DataLoaderInterface):
         self.return_labels = return_labels
         self.base_img_folder = params['data']['base_path']
         self.images, self.label_folders, self.total_num_data =  self.get_img_names(self.base_img_folder)
+
         super().__init__(self.total_num_data, params, shuffle_data)
 
     @staticmethod
@@ -332,11 +336,11 @@ class ImgLoader(DataLoaderInterface):
         files = os.listdir(base_path)
 
         # keep all sub-folders of the base directory
-        label_folders = [sub_folder for sub_folder in files if os.path.isdir(sub_folder)]
+        label_folders = [sub_folder for sub_folder in files if os.path.isdir(base_path + sub_folder)]
 
         # if no sub-folder is in the base directory, then the base folder contains all of the data
         if len(label_folders) == 0:
-            label_folders = [base_path]
+            label_folders = ['']
 
         # get the image names and the number of image data per label
         images = []
@@ -361,7 +365,7 @@ class ImgLoader(DataLoaderInterface):
         """
 
         img_out = np.zeros(self.img_size)
-        for i in range(img.shape[2]):
+        for i in range(img_out.shape[0]):
             img_out[i, ...] = img[:, :, i]
         return img_out
 
@@ -387,8 +391,6 @@ class ImgLoader(DataLoaderInterface):
 
         # compute the normal shape (target image size in channels last manner)
         normal_shape = [self.img_size[1], self.img_size[2]]
-        if self.img_size[0] > 1:
-            normal_shape.append(self.img_size[0])
         normal_shape = tuple(normal_shape)
 
         # load and store all images in the image_path  list
@@ -430,9 +432,10 @@ class ImgLoader(DataLoaderInterface):
         # compute the image paths corresponding to the label and image indices
         img_path_list = []
         for (img_index, label_index) in zip(img_indices, label_indices):
+
             label_folder = self.label_folders[label_index]
             image_name = self.images[label_index][img_index]
-            img_path_list.append(self.base_img_folder + label_folder + image_name)
+            img_path_list.append(self.base_img_folder + label_folder + '/' + image_name)
 
         # load the images
         images = self.load_img(img_path_list)
