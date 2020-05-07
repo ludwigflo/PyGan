@@ -26,8 +26,8 @@ def simple_data_split(num_data: int, train_data: float, val_data: float, shuffle
         random.shuffle(indices)
 
     # compute the amount of indices
-    num_train_indices = int(train_data * num_data)
-    num_val_indices = int(num_data * val_data)
+    num_train_indices = round(train_data * num_data)
+    num_val_indices = round(num_data * val_data)
 
     # split the indices into their corresponding lists
     train_indices = indices[:num_train_indices]
