@@ -5,31 +5,24 @@ import torch.nn.functional as F
 import torch
 
 
-def load_dataset(data_path: str, data_name: str) -> Tuple[torch.Tensor, torch.Tensor]:
+def data_loader(data_loader: ImgLoader, batch_size: int, noise_size: Union[int, tuple] = 30,
+                size_tuple: tuple = (4, 8, 14), train_data: bool = True) -> tuple:
     """
-    Loads a data file, which is provided by its path and name, and returns a tuple for torch.Tensors, representing data
-    data and labels.
+    Wraps a ImgLoader instance to make it usable by the MSGGan class.
 
     Parameters
     ----------
-    data_path: path of the data file.
-    data_name: Name of the data file.
+    data_loader: ImgLoader instance, which loads image data and provides data generators for train and validation data.
+    batch_size: Batch size for the training data.
+    noise_size: Size of the noise, which is fed into the MSG Gan generator in order to synthesize images.
+    size_tuple: Image lengths, to which the images are rescaled (MSG Gan uses images at different sizes).
+    train_data: Variable, which indicates whether to use train data of validation data.
 
     Returns
     -------
-    data: Data tensor.
-    labels: Label tensor.
-    """
-
-    with open(data_path + data_name, 'rb') as f:
-        data, labels = torch.load(f)
-    return data, labels
-
-
-def data_loader(data_loader: ImgLoader, batch_size: int, noise_size: Union[int, tuple] = 30,
-                size_tuple: tuple = (4, 8, 14), train_data: bool = True):
-    """
-    TODO: initialize the data loader and wrap it in order to make it usable by the MSG gan.
+    output: Data samples, which can be used by the MSG Gan model for training and validation.
+    done: (Optional) Variable, which indicates whether a complete validation (or test) epoch is finished or not.
+    num_data: Total number of validation data.
     """
 
     if train_data:
