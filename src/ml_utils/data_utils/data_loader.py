@@ -198,6 +198,7 @@ class DataLoaderInterface(ABC):
         for i, label_list in enumerate(val_set):
             indices.extend(deepcopy(label_list))
             labels.extend([i] * len(label_list))
+        num_data = len(indices)
 
         # do as long as you want
         iteration = 0
@@ -215,7 +216,7 @@ class DataLoaderInterface(ABC):
             done = True if max_size == len(indices) else False
 
             iteration = iteration + 1 if (not done) else 0
-            yield samples, done
+            yield samples, done, num_data
 
     def test_generator(self, batch_size: int = 1) -> tuple:
         """
@@ -244,6 +245,7 @@ class DataLoaderInterface(ABC):
         for i, label_list in enumerate(test_set):
             indices.extend(deepcopy(label_list))
             labels.extend([i] * len(label_list))
+        num_data = len(indices)
 
         # do as long as you want
         iteration = 0
@@ -261,7 +263,7 @@ class DataLoaderInterface(ABC):
             done = True if max_size == len(indices) else False
 
             iteration = iteration + 1 if (not done) else 0
-            yield samples, done
+            yield samples, done, num_data
 
     def save_object(self, path: str) -> None:
         """
