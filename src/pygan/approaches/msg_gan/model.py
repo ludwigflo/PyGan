@@ -1,5 +1,6 @@
 from ...layers import Flatten, Reshape, Conv2d, ConvTranspose2d
 from ...interfaces import GanGenerator, Gan
+from ...utils import channel_first_to_last
 import torch.nn as nn
 import torch
 
