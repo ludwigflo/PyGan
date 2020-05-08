@@ -32,7 +32,7 @@ class Trainer(GanTrainer):
 
         # some preparations
         sample = next(self.train_data_generator)
-        data_real = [x.to(self.device) for x in sample['data_real']]
+        data_real = [x.float().to(self.device) for x in sample['data_real']]
         gen_input = sample['gen_input'].to(self.device)
         self.gan_model.discriminator.zero_grad()
         self.gan_model.generator.zero_grad()
@@ -86,7 +86,7 @@ class Trainer(GanTrainer):
         data_fake = self.gan_model.generator(gen_input)
 
         # compute the targets (smooth labels)
-        targets_fake = 0.7 + 0.3 * torch.rand(data_fake[0].size()[0]).view(-1, 1)
+        targets_fake = torch.ones(data_fake[0].size()[0]).view(-1, 1)
         targets_fake = targets_fake.to(self.device).view(-1)
 
         # compute the predictions
@@ -118,11 +118,15 @@ class Trainer(GanTrainer):
                 sys.stdout.flush()
 
                 # get the input for the generator and the real sample
-                data_real = [x.to(self.device) for x in sample['data_real']]
+                data_real = [x.float().to(self.device) for x in sample['data_real']]
                 gen_input = sample['gen_input'].to(self.device)
 
                 # compute fake data
-                data_fake = self.gan_model.generator(gen_input)
+                try:
+                    data_fake = self.gan_model.generator(gen_input)
+                except:
+                    print()
+                    print(gen_input.size())
 
                 # compute the targets
                 # targets_real = torch.from_numpy(np.random.uniform(0.7, 1, data_real.size()[0])).float().view(-1, 1)
@@ -182,7 +186,6 @@ class Trainer(GanTrainer):
         images = [img[0:1, :, :, :] if img.shape[3]>1 else np.repeat(img[0:1, ...], 3, axis=3) for img in images]
         images = [normalize_img(img) for img in images]
         images = np.concatenate(images)
-
         tb_img_dict = {'Samples': images}
         tb_logger_list[0].log_images('Generated', tb_img_dict, epoch)
 
