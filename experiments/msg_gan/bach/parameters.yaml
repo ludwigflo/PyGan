@@ -1,5 +1,5 @@
 training:
-  num_epochs: 200
+  num_epochs: 400
   num_iterations: 150
   k_dis: 1
   k_gen: 1
@@ -17,4 +17,4 @@ data_loader:
     val_split: 0.05
 
 data:
-  base_path: '/media/data2/data/BACH/wsi_patches/'
+  base_path: '/media/data2/data/BACH/wsi_patches/2_InSitu/'
