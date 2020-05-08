@@ -30,12 +30,12 @@ class TestImgLoader(unittest.TestCase):
             self.assertEqual(img.shape, (2, 3, 128, 128))
             break
 
-        # test the ImgLoader for returning data with additional labels
-        img_loader = ImgLoader(self.params, img_size=(3, 128, 128), shuffle_data=False, return_labels=True)
-        train_loader = img_loader.train_generator(7)
-        for i, (img, label) in enumerate(train_loader):
-            self.assertEqual(img.shape, (7, 3, 128, 128))
-            break
+        # # test the ImgLoader for returning data with additional labels
+        # img_loader = ImgLoader(self.params, img_size=(3, 128, 128), shuffle_data=False, return_labels=True)
+        # train_loader = img_loader.train_generator(7)
+        # for i, (img, label) in enumerate(train_loader):
+        #     self.assertEqual(img.shape, (7, 3, 128, 128))
+        #     break
 
     def test_val_generator(self):
         img_loader = ImgLoader(self.params, img_size=(3, 128, 128), shuffle_data=True, return_labels=False)

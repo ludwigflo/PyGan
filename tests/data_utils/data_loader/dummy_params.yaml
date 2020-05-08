@@ -11,4 +11,4 @@ data_loader:
     k: 5
 
 data:
-  base_path: 'images/base_path1/' # 'images/base_path2/'
+  base_path: 'images/base_path2/' # 'images/base_path2/'

@@ -108,7 +108,6 @@ class DataLoaderInterface(ABC):
 
         # if we just split each label into train and test indices, then we need to iterate over the class labels
         else:
-
             split = [simple_data_split(num_data, train_split, val_split, shuffle_data) for num_data in total_num_data]
 
             if train_split + val_split < 1:
