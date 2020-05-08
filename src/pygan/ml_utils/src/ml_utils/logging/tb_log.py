@@ -61,7 +61,9 @@ class Logger(object):
 
         for key, img in images.items():
             with self.writer.as_default():
-                    tf.summary.image(key, img, step)
+                for i in range(img.shape[0]):
+                    img_act = img[i:i+1, ...]
+                    tf.summary.image(key + '/' + str(i), img_act, step)
         self.writer.flush()
 
     def log_histogram(self, values: np.ndarray, tag: str, step: int, bins: int = 1000) -> None:
