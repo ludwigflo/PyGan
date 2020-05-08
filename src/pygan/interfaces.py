@@ -216,8 +216,8 @@ class GanTrainer(ABC):
         lr_gen = params['training']['lr_gen']
         lr_dis = params['training']['lr_dis']
 
-        optimizer_gen = Adam(self.gan_model.generator.parameters(), lr = lr_gen, betas = (0.9, 0.999))
-        optimizer_dis = Adam(self.gan_model.discriminator.parameters(), lr = lr_dis, betas = (0.9, 0.999))
+        optimizer_gen = Adam(self.gan_model.generator.parameters(), lr = lr_gen)
+        optimizer_dis = Adam(self.gan_model.discriminator.parameters(), lr = lr_dis, betas = (0.5, 0.999))
         self.optimizer_list = [optimizer_gen, optimizer_dis]
 
     def train_epoch(self, num_iterations: int, k_dis: int,
