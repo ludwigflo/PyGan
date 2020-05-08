@@ -5,8 +5,8 @@ import torch.nn.functional as F
 import torch
 
 
-def data_loader(data_loader: ImgLoader, batch_size: int, noise_size: Union[int, tuple] = 30,
-                size_tuple: tuple = (4, 8, 14), train_data: bool = True) -> tuple:
+def data_loader(data_loader: ImgLoader, batch_size: int, noise_size: Union[int, tuple]=50,
+                size_tuple: tuple=(4, 8, 14), train_data: bool = True) -> tuple:
     """
     Wraps a ImgLoader instance to make it usable by the MSGGan class.
 
@@ -38,25 +38,32 @@ def data_loader(data_loader: ImgLoader, batch_size: int, noise_size: Union[int, 
         # get the validation data generator of the ImgLoader instance
         data_generator = data_loader.val_generator(batch_size=1)
 
+        val_indices = data_loader.split[1]
+        num_val_samples = sum([len(x) for x in val_indices])
+
         # fix the generator input noise value for validation purposes
         if type(noise_size) == tuple:
-            fix_noise_value = torch.randn((num_data_samples, *noise_size))
+            fix_noise_value = torch.randn((num_val_samples, *noise_size))
         else:
-            fix_noise_value = torch.randn((num_data_samples, noise_size))
+            fix_noise_value = torch.randn((num_val_samples, noise_size))
 
     # get samples of the data generator
+    index = 0
     for data in data_generator:
-        if training:
+        if train_data:
             samples = data
-            noise = torch.randn(noise_size)
+            noise = torch.randn(train_noise_size)
         else:
             samples = data[0]
-            done = samples[1]
-            num_data = samples[2]
-            noise = fix_noise_value[index:index+batch_size, ...]
+            done = data[1]
+            num_data = data[2]
+            if index == num_data:
+                index = 0
+            noise = fix_noise_value[index:index+1, ...]
+            index += 1
 
         # create a list of images, as required for the msg GAN
-        data_list = wrapper(samples, size_tuple)
+        data_list = wrapper(torch.from_numpy(samples)/255., size_tuple)
         output = {'data_real': data_list, 'gen_input': noise}
 
         if train_data:
