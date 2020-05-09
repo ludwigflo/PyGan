@@ -1,0 +1,20 @@
+training:
+  num_epochs: 400
+  num_iterations: 150
+  k_dis: 1
+  k_gen: 1
+  lr_gen: 0.0002
+  lr_dis: 0.0002
+
+experiment:
+  path: 'experiments/'
+  tb_log: True
+
+data_loader:
+  split: 'simple_split'
+  simple_split:
+    train_split: 0.95
+    val_split: 0.05
+
+data:
+  base_path: '/media/data2/data/BACH/wsi_patches/2_InSitu/'

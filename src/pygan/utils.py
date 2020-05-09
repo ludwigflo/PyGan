@@ -299,3 +299,59 @@ def to_gpu(*args: Union[torch.Tensor, torch.nn.Module, list]) -> tuple:
             out.append(x.cuda())
     out = tuple(out)
     return out
+
+
+class EarlyStopping:
+    """
+    Class for early stopping conditions in model training.
+    """
+    def __init__(self, buffer_size: int, min_time_steps: Union[int, None],
+                 max_time_steps: Union[None, int], max_time: Union[None, float]):
+        """
+        Constructor of the EarlyStopping class.
+
+        Parameters
+        ----------
+        buffer_size: Number of time steps, which should be keeped in the buffer.
+        min_time_steps: Minimal number of time steps, which should be performed by the model.
+        max_time_steps: Maximal number of time steps, which should be performed by the model.
+        """
+
+        self.min_time_steps = min_time_steps
+        self.max_time_steps = max_time_steps
+        self.validation_buffer = list()
+        self.buffer_size = buffer_size
+
+    def store_element(self, loss_value: float, buffer: list) -> list:
+        """
+        Stores a new element in the provided buffer. If the maximal buffer size is reached, then the oldest experience
+        is deleted from the buffer.
+
+        Parameters
+        ----------
+        loss_value: New loss value element, which should be stored in the buffer.
+        buffer: List, containing the last 'num_time_steps' loss values.
+        """
+
+        buffer.append(element)
+        if len(buffer) > self.buffer_size:
+            del self.buffer[0]
+        return buffer
+
+    def condition(self, loss_value: float, time_step: int) -> bool:
+        """
+        Checks, whether the early stopping condition is satisfied or not.
+        TODO: Implementation
+        Parameters
+        ----------
+        loss_value: A new loss value, which is stored in the buffers and for which should be checked, if the early
+                    stopping condition is satisfied or not.
+        time_step: Current time step, which can also be a criterion whether to stop training or not.
+
+        Returns
+        -------
+        stop_training: Variable, which indicates whether to stop the training or not.
+        """
+
+        # store the new element in the validation buffer
+        self.validation_buffer = self.store_element(loss_value, self.validation_buffer)
