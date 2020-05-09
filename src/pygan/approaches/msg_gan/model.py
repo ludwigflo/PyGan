@@ -5,6 +5,90 @@ import torch.nn as nn
 import torch
 
 
+class FrechetInceptionModel(nn.Module):
+    """
+    Model, which can be trained and used for computing the Frechet-Inception-Distance as quality measurement for Gans.
+    The Frechet-Inception model can be trained as an autoencoder.
+    """
+
+    def __init__(self, latent_dim: int = 30, channels: tuple = (512, 256, 128, 64, 3), paddings: tuple = (1, 1, 1, 2),
+                 strides: tuple = (1, 1, 1, 1), kernel_sizes: tuple = (4, 4, 4, 6), org_size: tuple = (4, 4)):
+
+        super().__init__()
+        channels = list(channels)
+        channels = [int(x/2) if i != len(channels)-1 else x for i, x in enumerate(channels)]
+
+        self.encoder = nn.Sequential(
+            # down sample the 2D feature maps
+            Conv2d(channels[4], channels[3], kernel_sizes[3], stride=strides[3],
+                   padding=paddings[3], spec_norm=False, coord_conv=False),
+            nn.BatchNorm2d(channels[3]),
+            nn.LeakyReLU(negative_slope=0.2),
+
+            # down sample the 2D feature maps
+            Conv2d(channels[3], channels[2], kernel_sizes[2], stride=strides[2],
+                   padding=paddings[2], spec_norm=False, coord_conv=False),
+            nn.BatchNorm2d(channels[2]),
+            nn.LeakyReLU(negative_slope=0.2),
+
+            # down sample the 2D feature maps
+            Conv2d(channels[2], channels[1], kernel_sizes[1], stride=strides[1], 
+                   padding=paddings[1], spec_norm=False, coord_conv=False),
+            nn.BatchNorm2d(channels[1]),
+            nn.LeakyReLU(negative_slope=0.2),
+
+            # down sample the 2D feature maps
+            Conv2d(channels[1], channels[0], kernel_sizes[0], stride=strides[0], 
+                   padding=paddings[0], spec_norm=False, coord_conv=False),
+            nn.BatchNorm2d(channels[0]),
+            nn.LeakyReLU(negative_slope=0.2),
+        )
+
+        self.decoder = nn.Sequential(
+            # upsample the 2D feature maps
+            ConvTranspose2d(channels[0], channels[1], kernel_sizes[0], stride=strides[0], 
+                            padding=paddings[0], spec_norm=False, coord_conv=False),
+            nn.BatchNorm2d(channels[1]),
+            nn.LeakyReLU(negative_slope=0.2),
+
+            # upsample the 2D feature map
+            ConvTranspose2d(channels[1], channels[2], kernel_sizes[1], stride=strides[1], padding=paddings[1],
+                            spec_norm=spec_norm, coord_conv=coord_conv),
+            nn.BatchNorm2d(channels[2]),
+            nn.LeakyReLU(negative_slope=0.2),
+
+            # upsample the 2D feature map
+            ConvTranspose2d(channels[2], channels[3], kernel_sizes[2], stride=strides[2], padding=paddings[2],
+                            spec_norm=spec_norm, coord_conv=coord_conv),
+            nn.BatchNorm2d(channels[3]),
+            nn.LeakyReLU(negative_slope=0.2),
+
+            # upsample the 2D feature map
+            ConvTranspose2d(channels[3], channels[4], kernel_sizes[3], stride=strides[3], padding=paddings[3],
+                            spec_norm=spec_norm, coord_conv=coord_conv),
+            nn.Tanh()
+        )
+
+    def forward(self, image: torch.Tensor, encoder_only: bool = False):
+        """
+        Forward pass through the autoencoder.
+
+        Parameters
+        ----------
+        image: Input image, which should be forwarded through the autoencoder.
+        encoder_only: Variable, which indicates whether to only encode the input image or additionally decode it.
+
+        Returns
+        -------
+        output: Network output (either encoded image or the again decoded image).
+        """
+
+        output = self.encoder(image)
+        if not encoder_only:
+            output = self.decoder(output)
+        return output
+
+
 class MsgGanGenerator(GanGenerator, nn.Module):
     """
     Class for MSG-GAN generators.
