@@ -14,7 +14,7 @@ batch_size = 256
 
 # initialize the model
 print('Initialize Model...')
-channels = (512, 256, 128, 64, 3)
+channels = (512, 256, 128, 64, 1)
 kernel_sizes = (4, 4, 4, 6)
 strides = (2, 2, 2, 2)
 paddings=(1, 1, 1, 2)
@@ -30,7 +30,7 @@ print('Done!\n')
 # create data loaders for train and test data
 print('Load data and create data loaders...')
 parameters = read_parameter_file(parameter_file)
-data_generator = ImgLoader(parameters, img_size=(3, 128, 128))
+data_generator = ImgLoader(parameters, img_size=(1, 128, 128))
 train_loader = data_loader(data_generator, batch_size=1, noise_size=latent_dim, size_tuple=(16, 32, 64), train_data=True)
 validation_loader = data_loader(data_generator, batch_size=1, noise_size=latent_dim,
                                 size_tuple=(16, 32, 64), train_data=False)
