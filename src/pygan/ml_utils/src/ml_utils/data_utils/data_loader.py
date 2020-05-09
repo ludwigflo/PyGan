@@ -400,8 +400,12 @@ class ImgLoader(DataLoaderInterface):
             # load the current image and resize it to the target shape
             img = np.array(Image.open(img_path).resize(normal_shape))
 
-            # store the image in channels first manner
-            images[i] = self.channels_last2channels_first(img)
+            if len(img.shape)==2:
+                images[i, 0, ...] = img
+            else:
+
+                # store the image in channels first manner
+                images[i, ...] = self.channels_last2channels_first(img)
 
         return images
 
