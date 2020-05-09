@@ -6,11 +6,13 @@ import torch.nn as nn
 import numpy as np
 import torch
 import sys
+import os
 
 
 class Trainer(GanTrainer):
     def __init__(self, gan_model: Gan, train_data_generator: Generator[dict, None, None], criterion: nn.Module,
-                 val_data_generator: Generator[dict, None, None], parameter_file: str, device):
+                 val_data_generator: Generator[dict, None, None], parameter_file: str, device,
+                 frechet_model_path: Union[None, str] = None):
 
         super(Trainer, self).__init__(gan_model, train_data_generator, parameter_file)
         self.val_data_generator = val_data_generator
@@ -20,6 +22,41 @@ class Trainer(GanTrainer):
         self.device = device
         self.gan_model.generator.to(device)
         self.gan_model.discriminator.to(device)
+        if frechet_model_path is None:
+            self.frechet_model = None
+        else:
+            self.frechet_model = self.return_frechet_model(frechet_model_path)
+
+    def return_frechet_model(self, model_path: str) -> nn.Module:
+        """
+        Trains a model, which can be used for computed the frechet inception score.
+
+        Parameters
+        ----------
+        model_path: Path to the model, which should be used as Frechet-Inception model. If the model already exists,
+                    then we simply load and return it. If not, then we initialize the model randomly, train, save it to
+                    to provided path and return it.
+
+        Returns
+        -------
+        model: Model, which is used to compute the Frechet-Inception distance.
+        """
+
+        if os.path.isfile(model_path):
+            model = torch.load(model_path)
+        else:
+            model = self.train_frechet_model()
+        return model
+
+    def train_frechet_model(self) -> nn.Module:
+        """
+        TODO: Implementation
+
+        Returns
+        -------
+        """
+        pass
+
 
     def discriminator_train_iteration(self) -> Dict[str, float]:
         """
@@ -122,11 +159,7 @@ class Trainer(GanTrainer):
                 gen_input = sample['gen_input'].to(self.device)
 
                 # compute fake data
-                try:
-                    data_fake = self.gan_model.generator(gen_input)
-                except:
-                    print()
-                    print(gen_input.size())
+                data_fake = self.gan_model.generator(gen_input)
 
                 # compute the targets
                 # targets_real = torch.from_numpy(np.random.uniform(0.7, 1, data_real.size()[0])).float().view(-1, 1)
